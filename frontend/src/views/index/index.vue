@@ -1,6 +1,12 @@
-<!-- index.vue -->
+<!--
+  应用主页面（代码片段工作台）
+  - 布局：侧边栏 + 顶栏 + 片段列表
+  - 数据：片段 CRUD 存 localStorage，UI 偏好单独持久化
+  - 弹层：片段表单、AI 对话抽屉、代码沙箱
+-->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import {
   Plus,
@@ -11,22 +17,29 @@ import {
   ChatSquare,
   ArrowLeft,
   ArrowRight,
+  SwitchButton,
 } from '@/utils/icon'
+import { useAuthStore } from '@/stores/auth'
 import SnippetList from '@/components/SnippetList.vue'
 import SnippetForm from '@/components/SnippetForm.vue'
 import AiChat from '@/components/AiChat.vue'
 import CodeSandbox from '@/components/CodeSandbox.vue'
+import { BaseButton, BaseInput } from '@/components/base'
 import type { Snippet } from '@/types/Snippet'
 
-// ---------- 常量 ----------
-const STORAGE_KEY = 'codewhisper_snippets'
-const UI_STATE_KEY = 'codewhisper_ui'
+const router = useRouter()
+const authStore = useAuthStore()
+
+// ---------- 本地存储键名 ----------
+const STORAGE_KEY = 'codewhisper_snippets' // 片段列表 JSON
+const UI_STATE_KEY = 'codewhisper_ui'       // 侧栏/筛选/搜索等界面状态
 
 // ---------- 响应式数据 ----------
 const snippets = ref<Snippet[]>([])
 const showForm = ref(false)
 const showSandbox = ref(false)
-const currentSnippet = ref<Snippet | null>(null)      // 用于运行 / 引用的片段
+/** 当前选中的片段：供沙箱运行、AI 对话附加上下文共用 */
+const currentSnippet = ref<Snippet | null>(null)
 const editSnippet = ref<Snippet | null>(null)
 const sidebarCollapsed = ref(false)
 const showChat = ref(false)
@@ -42,7 +55,7 @@ const languages = [
   { label: 'CSS', value: 'css' }
 ]
 
-// ---------- 计算属性 ----------
+// ---------- 派生状态：语言筛选 + 关键词搜索 ----------
 const filteredSnippets = computed(() => {
   let result = snippets.value
   if (selectedLanguage.value !== 'all') {
@@ -210,6 +223,21 @@ const handleSubmit = (data: Omit<Snippet, 'createdAt' | 'updatedAt'> & { id?: st
   saveSnippets()
 }
 
+const handleLogout = async () => {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '退出',
+      cancelButtonText: '取消',
+      type: 'info',
+    })
+    authStore.logout()
+    ElMessage.success('已退出登录')
+    await router.push('/login')
+  } catch {
+    /* 取消 */
+  }
+}
+
 // 清空所有数据（设置菜单功能）
 const handleClearAllData = async () => {
   try {
@@ -286,12 +314,19 @@ onUnmounted(() => {
           <el-icon><Delete /></el-icon>
           <span v-if="!sidebarCollapsed">清空数据</span>
         </el-menu-item>
+        <el-menu-item index="4" @click="handleLogout">
+          <el-icon><SwitchButton /></el-icon>
+          <span v-if="!sidebarCollapsed">退出登录</span>
+        </el-menu-item>
       </el-menu>
 
       <div class="sidebar-footer">
-        <el-button icon @click="sidebarCollapsed = !sidebarCollapsed">
-          <el-icon><ArrowLeft v-if="!sidebarCollapsed" /><ArrowRight v-else /></el-icon>
-        </el-button>
+        <BaseButton
+          variant="ghost"
+          size="sm"
+          :icon="sidebarCollapsed ? ArrowRight : ArrowLeft"
+          @click="sidebarCollapsed = !sidebarCollapsed"
+        />
       </div>
     </el-aside>
 
@@ -304,7 +339,7 @@ onUnmounted(() => {
         </div>
 
         <div class="header-center">
-          <el-input
+          <BaseInput
             v-model="searchQuery"
             placeholder="搜索标题、代码或标签..."
             :prefix-icon="Search"
@@ -322,12 +357,15 @@ onUnmounted(() => {
         </div>
 
         <div class="header-right">
-          <el-button size="small" text v-if="!sidebarCollapsed">
+          <el-tag v-if="authStore.role" size="small" type="info" effect="plain">
+            {{ authStore.username }} · {{ authStore.roleLabel }}
+          </el-tag>
+          <BaseButton v-if="!sidebarCollapsed" variant="text" size="sm">
             收藏: {{ favoriteCount }}
-          </el-button>
-          <el-button type="primary" :icon="Plus" @click="handleCreate">
+          </BaseButton>
+          <BaseButton variant="primary" :icon="Plus" @click="handleCreate">
             {{ sidebarCollapsed ? '' : '新建片段' }}
-          </el-button>
+          </BaseButton>
         </div>
       </el-header>
 
@@ -447,10 +485,16 @@ onUnmounted(() => {
   right: 0;
   text-align: center;
 
-  :deep(.el-button) {
+  :deep(.base-button--ghost) {
     color: rgba(255, 255, 255, 0.6);
     background: rgba(255, 255, 255, 0.1);
     border: none;
+
+    &:hover:not(:disabled) {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.16);
+      border: none;
+    }
   }
 }
 

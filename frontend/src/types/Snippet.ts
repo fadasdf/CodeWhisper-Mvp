@@ -1,3 +1,4 @@
+/** 代码片段实体（持久化在 localStorage） */
 export interface Snippet {
   id: string
   title: string

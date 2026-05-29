@@ -1,7 +1,13 @@
+<!--
+  AiChat：AI 对话面板（抽屉内嵌）
+  - 当前为前端模拟回复；后续可改为调用 /api/chat SSE
+  - contextSnippet：父组件传入的代码片段，作为提问上下文
+-->
 <script setup lang="ts">
 import { ref, nextTick, watch, onMounted } from 'vue'
-import { ElInput, ElButton, ElAvatar, ElScrollbar } from 'element-plus'
+import { ElAvatar, ElScrollbar } from 'element-plus'
 import { Promotion, Service, User } from '@/utils/icon'
+import { BaseButton, BaseInput, LoadingSpinner } from '@/components/base'
 import type { Snippet } from '@/types/Snippet'
 
 // 扩展 Message 类型，包含可选的上下文片段
@@ -43,7 +49,7 @@ const scrollToBottom = async () => {
   }
 }
 
-// 发送消息（模拟 AI 回复，实际应接入后端 API）
+/** 发送用户消息；TODO: 替换为 axios/SSE 调用后端 */
 const sendMessage = async () => {
   if (!inputValue.value.trim() || isLoading.value) return
 
@@ -143,7 +149,9 @@ onMounted(() => {
         <el-avatar :icon="Service" size="small" />
         <h3>AI 代码助手</h3>
       </div>
-      <el-button size="small" text @click="clearMessages">清空对话</el-button>
+      <BaseButton variant="text" size="sm" @click="clearMessages">
+        清空对话
+      </BaseButton>
     </div>
 
     <!-- 修复1：使用 ElScrollbar 的正确滚动方法 -->
@@ -170,29 +178,29 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 修复3：使用普通 div 代替 ElLoading 组件 -->
       <div v-if="isLoading" class="loading-indicator">
-        <span>AI正在思考...</span>
+        <LoadingSpinner size="sm" text="AI 正在思考..." />
       </div>
     </el-scrollbar>
 
     <div class="chat-input">
-      <el-input
+      <BaseInput
         v-model="inputValue"
         type="textarea"
         :rows="2"
         placeholder="输入您的问题，Shift+Enter 换行"
+        class="chat-textarea"
         @compositionstart="handleCompositionStart"
         @compositionend="handleCompositionEnd"
         @keydown="handleKeydown"
       />
-      <el-button
-        type="primary"
-        :disabled="!inputValue.trim() || isLoading"
+      <BaseButton
+        variant="primary"
+        :icon="Promotion"
+        :loading="isLoading"
+        :disabled="!inputValue.trim()"
         @click="sendMessage"
-      >
-        <el-icon><Promotion /></el-icon>
-      </el-button>
+      />
     </div>
   </div>
 </template>
@@ -228,11 +236,12 @@ onMounted(() => {
     font-weight: 600;
   }
 
-  :deep(.el-button--text) {
+  :deep(.base-button--text) {
     color: rgba(255, 255, 255, 0.85);
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: #fff;
+      background: rgba(255, 255, 255, 0.12);
     }
   }
 }
@@ -309,9 +318,9 @@ onMounted(() => {
 }
 
 .loading-indicator {
-  text-align: center;
+  display: flex;
+  justify-content: center;
   padding: 16px;
-  color: #999;
 }
 
 .chat-input {
@@ -321,15 +330,18 @@ onMounted(() => {
   border-top: 1px solid #eee;
   background: #fafafa;
 
-  :deep(.el-textarea__inner) {
-    resize: none;
-    border-radius: 8px;
+  .chat-textarea {
+    flex: 1;
+
+    :deep(.el-textarea__inner) {
+      resize: none;
+      border-radius: 8px;
+    }
   }
 
-  :deep(.el-button) {
+  .base-button {
     align-self: flex-end;
-    padding: 12px 20px;
-    border-radius: 8px;
+    flex-shrink: 0;
   }
 }
 </style>

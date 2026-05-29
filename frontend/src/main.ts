@@ -1,3 +1,4 @@
+/** 应用入口：挂载 Vue、Pinia、路由、Element Plus 全局组件 */
 import './assets/main.css'
 
 import { createApp } from 'vue'

@@ -1,8 +1,16 @@
+<!--
+  CodeSandbox：iframe 沙箱运行片段
+  - HTML：直接渲染源码
+  - CSS：按选择器生成预览 DOM（见 utils/cssPreview）
+  - JS：劫持 console 输出到页面
+-->
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { ElDialog, ElButton, ElTabs, ElTabPane } from 'element-plus'
+import { ElDialog, ElTabs, ElTabPane } from 'element-plus'
 import { Close, VideoPlay, RefreshRight, FullScreen } from '@/utils/icon'
-import type { Snippet } from '@/types/Snippet'  // 修正导入路径
+import { BaseButton } from '@/components/base'
+import { buildCssPreviewDocument } from '@/utils/cssPreview'
+import type { Snippet } from '@/types/Snippet'
 
 interface Props {
   visible: boolean
@@ -14,10 +22,14 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
+const onDialogVisibleChange = (value: boolean) => {
+  if (!value) emit('close')
+}
+
 const iframeRef = ref<HTMLIFrameElement | null>(null)
 const activeTab = ref('result')
 
-// 生成完整的 HTML 预览文档
+/** 按语言类型生成 iframe srcdoc 内容 */
 const generateHtml = computed(() => {
   if (!props.snippet) return '<html><body>暂无代码片段</body></html>'
 
@@ -28,59 +40,9 @@ const generateHtml = computed(() => {
     return code
   }
 
-  // 处理 CSS：提供更丰富的示例 DOM
+  // 处理 CSS：按选择器生成匹配的预览 DOM
   if (language === 'css') {
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>${code}</style>
-  <style>
-    /* 基础演示样式，不会被覆盖 */
-    .demo-container {
-      font-family: system-ui, sans-serif;
-      padding: 20px;
-    }
-    .demo-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
-      background: #fff;
-    }
-    button.demo-btn {
-      margin-right: 8px;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-    input.demo-input {
-      padding: 6px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-  </style>
-</head>
-<body>
-  <div class="demo-container">
-    <div class="demo-card">
-      <h3>CSS 样式预览</h3>
-      <p>这是一个段落，用于测试字体、颜色、边距等样式。</p>
-      <button class="demo-btn">按钮</button>
-      <button class="demo-btn">悬停效果</button>
-      <input class="demo-input" placeholder="输入框" />
-    </div>
-    <div class="demo-card">
-      <ul>
-        <li>列表项 1</li>
-        <li>列表项 2</li>
-        <li>列表项 3</li>
-      </ul>
-    </div>
-  </div>
-</body>
-</html>
-    `
+    return buildCssPreviewDocument(code, props.snippet.title)
   }
 
   // 处理 JavaScript / TypeScript（将 TypeScript 视为 JavaScript 运行，或提示不支持）
@@ -202,7 +164,7 @@ const openInNewWindow = () => {
   }
 }
 
-// 监听弹窗打开或 snippet 变化时自动运行
+// 弹窗打开或切换片段时自动写入 iframe
 watch(
   () => [props.visible, props.snippet],
   ([newVisible, newSnippet]) => {
@@ -225,22 +187,23 @@ watch(iframeRef, (newIframe) => {
 <template>
   <ElDialog
     title="代码沙箱"
-    :visible="visible"
+    :model-value="visible"
     width="900px"
     :close-on-click-modal="false"
-    @close="emit('close')"
+    destroy-on-close
+    @update:model-value="onDialogVisibleChange"
   >
     <div class="sandbox-container" v-if="snippet">
       <div class="sandbox-toolbar">
-        <ElButton size="small" type="primary" :icon="VideoPlay" @click="runCode">
+        <BaseButton variant="primary" size="sm" :icon="VideoPlay" @click="runCode">
           运行
-        </ElButton>
-        <ElButton size="small" :icon="RefreshRight" @click="refresh">
+        </BaseButton>
+        <BaseButton variant="ghost" size="sm" :icon="RefreshRight" @click="refresh">
           刷新
-        </ElButton>
-        <ElButton size="small" :icon="FullScreen" @click="openInNewWindow">
+        </BaseButton>
+        <BaseButton variant="secondary" size="sm" :icon="FullScreen" @click="openInNewWindow">
           新窗口打开
-        </ElButton>
+        </BaseButton>
       </div>
 
       <ElTabs v-model="activeTab" type="card" class="sandbox-tabs">
@@ -264,9 +227,9 @@ watch(iframeRef, (newIframe) => {
     </div>
 
     <template #footer>
-      <ElButton :icon="Close" @click="emit('close')">
+      <BaseButton variant="ghost" :icon="Close" @click="emit('close')">
         关闭
-      </ElButton>
+      </BaseButton>
     </template>
   </ElDialog>
 </template>

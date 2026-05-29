@@ -1,0 +1,21 @@
+// 基础组件共享设计变量（品牌色、圆角、阴影）
+$brand-primary: #667eea;
+$brand-secondary: #764ba2;
+$brand-gradient: linear-gradient(135deg, $brand-primary 0%, $brand-secondary 100%);
+
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-xl: 20px;
+
+$shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 8px 24px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.12);
+
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$text-muted: #9ca3af;
+
+$border-light: #e5e7eb;
+$danger: #ef4444;
+$danger-hover: #dc2626;

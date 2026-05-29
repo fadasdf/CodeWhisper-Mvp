@@ -1,4 +1,7 @@
-<!-- SnippetList.vue -->
+<!--
+  SnippetList：片段卡片网格
+  向父组件抛出 edit / delete / run / toggleFavorite 事件
+-->
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -12,6 +15,7 @@ import {
   Check,
   ZoomIn,
 } from '@/utils/icon'
+import { BaseButton, BaseCard } from '@/components/base'
 import type { Snippet } from '@/types/Snippet'
 
 interface Props {
@@ -30,7 +34,7 @@ const copiedId = ref<string | null>(null)
 const fullCodeDialogVisible = ref(false)
 const fullCodeContent = ref('')
 
-// 排序：收藏优先，再按更新时间倒序
+/** 展示顺序：收藏置顶，同组内按更新时间倒序 */
 const sortedSnippets = computed(() => {
   return [...props.snippets].sort((a, b) => {
     if (a.isFavorite !== b.isFavorite) return b.isFavorite ? 1 : -1
@@ -38,33 +42,30 @@ const sortedSnippets = computed(() => {
   })
 })
 
-// 格式化日期（含年份）
 const formatDate = (timestamp: number) => {
   return new Date(timestamp).toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
-// 语言标签动态样式
 const languageTagStyle = (lang: string) => {
   const colors: Record<string, string> = {
     javascript: '#f7df1e',
     html: '#e34f26',
-    css: '#1572b6'
+    css: '#1572b6',
   }
   const color = colors[lang] || '#909399'
   return {
     backgroundColor: `${color}20`,
     color: color,
-    borderColor: `${color}40`
+    borderColor: `${color}40`,
   }
 }
 
-// 复制代码
 const copyToClipboard = async (code: string, id: string) => {
   try {
     await navigator.clipboard.writeText(code)
@@ -79,13 +80,11 @@ const copyToClipboard = async (code: string, id: string) => {
   }
 }
 
-// 查看完整代码
 const viewFullCode = (code: string) => {
   fullCodeContent.value = code
   fullCodeDialogVisible.value = true
 }
 
-// 在弹窗中复制代码
 const copyFullCode = async () => {
   try {
     await navigator.clipboard.writeText(fullCodeContent.value)
@@ -98,26 +97,34 @@ const copyFullCode = async () => {
 
 <template>
   <div class="snippet-list">
-    <div v-if="sortedSnippets.length === 0" class="empty-state">
+    <BaseCard
+      v-if="sortedSnippets.length === 0"
+      variant="default"
+      padding="lg"
+      class="empty-state"
+    >
       <div class="empty-icon">📝</div>
       <p>暂无代码片段</p>
       <p class="empty-hint">点击「新建片段」按钮创建第一个片段</p>
-    </div>
+    </BaseCard>
 
-    <el-card
+    <BaseCard
       v-for="snippet in sortedSnippets"
       :key="snippet.id"
+      variant="elevated"
+      hoverable
+      padding="md"
       class="snippet-card"
       :class="{ 'is-favorite': snippet.isFavorite }"
-      shadow="hover"
     >
       <div class="snippet-header">
         <div class="snippet-title-row">
           <el-tooltip :content="snippet.isFavorite ? '取消收藏' : '收藏'">
-            <el-button
+            <BaseButton
               class="favorite-btn"
+              :variant="snippet.isFavorite ? 'secondary' : 'ghost'"
+              size="sm"
               :icon="snippet.isFavorite ? StarFilled : Star"
-              :type="snippet.isFavorite ? 'warning' : 'default'"
               @click="emit('toggleFavorite', snippet.id)"
             />
           </el-tooltip>
@@ -140,44 +147,53 @@ const copyFullCode = async () => {
       <div class="snippet-preview">
         <pre class="code-preview" :title="snippet.code">{{ snippet.code }}</pre>
         <div class="preview-actions">
-          <el-button size="small" text @click="viewFullCode(snippet.code)">
-            <el-icon><ZoomIn /></el-icon> 查看完整代码
-          </el-button>
+          <BaseButton variant="text" size="sm" :icon="ZoomIn" @click="viewFullCode(snippet.code)">
+            查看完整代码
+          </BaseButton>
         </div>
       </div>
 
-      <div class="snippet-actions">
-        <el-button size="small" icon @click="copyToClipboard(snippet.code, snippet.id)">
-          <el-icon><Check v-if="copiedId === snippet.id" /><CopyDocument v-else /></el-icon>
-          {{ copiedId === snippet.id ? '已复制' : '复制' }}
-        </el-button>
-        <el-button size="small" icon type="primary" @click="emit('edit', snippet)">
-          <el-icon><Edit /></el-icon> 编辑
-        </el-button>
-        <el-button size="small" icon type="success" @click="emit('run', snippet)">
-          <el-icon><VideoPlay /></el-icon> 运行
-        </el-button>
-        <el-popconfirm
-          title="确认删除该代码片段吗？"
-          confirm-button-text="删除"
-          cancel-button-text="取消"
-          @confirm="emit('delete', snippet.id)"
-        >
-          <template #reference>
-            <el-button size="small" icon type="danger">
-              <el-icon><Delete /></el-icon> 删除
-            </el-button>
-          </template>
-        </el-popconfirm>
-      </div>
-    </el-card>
+      <template #footer>
+        <div class="snippet-actions">
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            :icon="copiedId === snippet.id ? Check : CopyDocument"
+            @click="copyToClipboard(snippet.code, snippet.id)"
+          >
+            {{ copiedId === snippet.id ? '已复制' : '复制' }}
+          </BaseButton>
+          <BaseButton variant="secondary" size="sm" :icon="Edit" @click="emit('edit', snippet)">
+            编辑
+          </BaseButton>
+          <BaseButton variant="primary" size="sm" :icon="VideoPlay" @click="emit('run', snippet)">
+            运行
+          </BaseButton>
+          <el-popconfirm
+            title="确认删除该代码片段吗？"
+            confirm-button-text="删除"
+            cancel-button-text="取消"
+            @confirm="emit('delete', snippet.id)"
+          >
+            <template #reference>
+              <BaseButton variant="danger" size="sm" :icon="Delete">
+                删除
+              </BaseButton>
+            </template>
+          </el-popconfirm>
+        </div>
+      </template>
+    </BaseCard>
 
-    <!-- 完整代码预览弹窗 -->
     <el-dialog v-model="fullCodeDialogVisible" title="完整代码" width="80%">
       <pre class="full-code-view">{{ fullCodeContent }}</pre>
       <template #footer>
-        <el-button @click="fullCodeDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="copyFullCode">复制代码</el-button>
+        <BaseButton variant="ghost" @click="fullCodeDialogVisible = false">
+          关闭
+        </BaseButton>
+        <BaseButton variant="primary" @click="copyFullCode">
+          复制代码
+        </BaseButton>
       </template>
     </el-dialog>
   </div>
@@ -194,7 +210,6 @@ const copyFullCode = async () => {
 .empty-state {
   grid-column: 1 / -1;
   text-align: center;
-  padding: 60px 20px;
   color: #999;
 
   .empty-icon {
@@ -214,13 +229,6 @@ const copyFullCode = async () => {
 }
 
 .snippet-card {
-  transition: transform 0.2s, box-shadow 0.2s;
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-
   &.is-favorite {
     border-left: 4px solid #f59e0b;
   }
@@ -299,12 +307,12 @@ const copyFullCode = async () => {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  margin-top: 8px;
   flex-wrap: wrap;
 }
 
 .favorite-btn {
-  padding: 4px;
+  min-width: auto;
+  padding: 4px 8px;
 }
 
 .full-code-view {
@@ -319,5 +327,11 @@ const copyFullCode = async () => {
   word-break: break-all;
   max-height: 70vh;
   overflow: auto;
+}
+
+:deep(.base-card__footer) {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
 }
 </style>
