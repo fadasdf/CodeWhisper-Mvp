@@ -1,6 +1,6 @@
 <!--
   AiChat：AI 对话面板（抽屉内嵌）
-  - 当前为前端模拟回复；后续可改为调用 /api/chat SSE
+  - 通过 POST /api/chat/stream SSE 与后端 DeepSeek 模型对话
   - contextSnippet：父组件传入的代码片段，作为提问上下文
 -->
 <script setup lang="ts">
@@ -8,7 +8,10 @@ import { ref, nextTick, watch, onMounted } from 'vue'
 import { ElAvatar, ElScrollbar } from 'element-plus'
 import { Promotion, Service, User } from '@/utils/icon'
 import { BaseButton, BaseInput, LoadingSpinner } from '@/components/base'
+import { streamChat, clearChatSession, getChatHistory } from '@/api/chat'
 import type { Snippet } from '@/types/Snippet'
+
+const SESSION_KEY = 'codewhisper_chat_session_id'
 
 // 扩展 Message 类型，包含可选的上下文片段
 interface Message {
@@ -16,7 +19,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: number
-  contextSnippets?: Snippet[]   // 修复4：添加缺失的字段
+  contextSnippets?: Snippet[]   // 添加缺失的字段
 }
 
 interface Props {
@@ -32,7 +35,10 @@ const emit = defineEmits<{
 const messages = ref<Message[]>([])
 const inputValue = ref('')
 const isLoading = ref(false)
+const isStreaming = ref(false)
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
+const sessionId = ref('')
+const abortController = ref<AbortController | null>(null)
 
 // 修复5：中文输入法组合状态
 let isComposing = false
@@ -49,9 +55,20 @@ const scrollToBottom = async () => {
   }
 }
 
-/** 发送用户消息；TODO: 替换为 axios/SSE 调用后端 */
+const WELCOME_MESSAGE = '您好！我是您的AI代码助手。可以为您解释、优化或调试代码，也可以基于选中的代码片段提问。'
+
+const appendWelcomeMessage = () => {
+  messages.value.push({
+    id: generateId(),
+    role: 'assistant',
+    content: WELCOME_MESSAGE,
+    timestamp: Date.now()
+  })
+}
+
+/** 发送用户消息，通过 SSE 流式接收 AI 回复 */
 const sendMessage = async () => {
-  if (!inputValue.value.trim() || isLoading.value) return
+  if (!inputValue.value.trim() || isLoading.value || isStreaming.value) return
 
   const userMsg: Message = {
     id: generateId(),
@@ -63,42 +80,80 @@ const sendMessage = async () => {
 
   messages.value.push(userMsg)
   inputValue.value = ''
+  // console.log('111111111111111111111111111111111111111111')
+  // console.log('messages', messages.value)
+  // console.log('userMsg', userMsg)
   await scrollToBottom()
 
   isLoading.value = true
 
-  // 模拟网络延迟和 AI 回复（实际应替换为真实 API 调用）
-  setTimeout(() => {
-    const aiMsg: Message = {
-      id: generateId(),
-      role: 'assistant',
-      content: generateAIResponse(userMsg.content, props.contextSnippet),
-      timestamp: Date.now()
-    }
-    messages.value.push(aiMsg)
-    isLoading.value = false
-    scrollToBottom()
-  }, 1200)
-}
-
-// 模拟 AI 回复生成（可根据实际需要对接真实 AI 接口）
-const generateAIResponse = (userInput: string, snippet?: Snippet | null): string => {
-  const templates = [
-    '这是一个很好的问题！让我来分析一下...\n\n核心思路是...',
-    '我来帮您优化这段代码！\n\n建议使用以下模式...',
-    '代码分析完成！潜在问题：\n1. 空值风险\n2. 复杂度较高\n3. 缺少注释'
-  ]
-  let response = templates[Math.floor(Math.random() * templates.length)]
-  if (snippet) {
-    response = `关于片段「${snippet.title}」的问题：${userInput}\n\n${response}`
-  } else {
-    response = `您问：“${userInput}”\n\n${response}`
+  const aiMsg: Message = {
+    id: generateId(),
+    role: 'assistant',
+    content: '',
+    timestamp: Date.now()
   }
-  return response
+  messages.value.push(aiMsg)
+  const aiMsgIndex = messages.value.length - 1
+
+  const appendAiContent = (token: string) => {
+    const target = messages.value[aiMsgIndex]
+    if (target) target.content += token
+  }
+
+  const setAiContent = (content: string) => {
+    const target = messages.value[aiMsgIndex]
+    if (target) target.content = content
+  }
+
+  abortController.value?.abort()
+  abortController.value = new AbortController()
+
+  try {
+    isStreaming.value = true
+    isLoading.value = false
+
+    await streamChat(
+      {
+        sessionId: sessionId.value,
+        message: userMsg.content,
+        contextSnippet: props.contextSnippet
+      },
+      (event) => {
+         console.log('📨 [streamChat 回调] 收到事件:', event)
+        if (event.type === 'token') {
+          console.log(`🎯 [回调] 收到 token: "${event.content}"`)
+          appendAiContent(event.content)
+          scrollToBottom()
+        } else if (event.type === 'done') {
+          console.log(`✅ [回调] 收到 done，完整内容长度: ${event.content.length}`)
+          setAiContent(event.content)
+        } else if (event.type === 'error') {
+          if (event.statusCode === 402) {
+            setAiContent(`402 余额不足：${event.message}`)
+          } else {
+            setAiContent(`请求失败：${event.message}`)
+          }
+        }
+      },
+      abortController.value.signal
+    )
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') return
+    setAiContent(`请求失败：${err instanceof Error ? err.message : '未知错误'}`)
+  } finally {
+    isStreaming.value = false
+    isLoading.value = false
+    abortController.value = null
+    await scrollToBottom()
+  }
 }
 
-// 清空对话（修复6：内部实现清空逻辑）
-const clearMessages = () => {
+// 清空对话并同步清除后端会话历史
+const clearMessages = async () => {
+  abortController.value?.abort()
+  await clearChatSession(sessionId.value).catch(() => {})
+
   messages.value = [
     {
       id: generateId(),
@@ -107,7 +162,7 @@ const clearMessages = () => {
       timestamp: Date.now()
     }
   ]
-  emit('clear')   // 可选：通知父组件
+  emit('clear')
   scrollToBottom()
 }
 
@@ -129,15 +184,30 @@ watch(
   () => scrollToBottom()
 )
 
-// 初始化欢迎消息
-onMounted(() => {
-  if (messages.value.length === 0) {
-    messages.value.push({
-      id: generateId(),
-      role: 'assistant',
-      content: '您好！我是您的AI代码助手。可以为您解释、优化或调试代码，也可以基于选中的代码片段提问。',
-      timestamp: Date.now()
-    })
+// 初始化 sessionId、欢迎消息与历史对话
+onMounted(async () => {
+  const stored = localStorage.getItem(SESSION_KEY)
+  sessionId.value = stored || generateId()
+  localStorage.setItem(SESSION_KEY, sessionId.value)
+
+  appendWelcomeMessage()
+
+  try {
+    const history = await getChatHistory(sessionId.value)
+    for (const msg of history) {
+      if (msg.role !== 'user' && msg.role !== 'assistant') continue
+      messages.value.push({
+        id: generateId(),
+        role: msg.role,
+        content: msg.content,
+        timestamp: Date.now()
+      })
+    }
+    if (history.length > 0) {
+      await scrollToBottom()
+    }
+  } catch {
+    // 历史加载失败时保留欢迎消息即可
   }
 })
 </script>
@@ -170,7 +240,7 @@ onMounted(() => {
           <div class="message-text">{{ msg.content }}</div>
           <!-- 修复2：显示附带的代码片段上下文 -->
           <div v-if="msg.contextSnippets?.length" class="context-badge">
-            📄 附片段：{{ msg.contextSnippets[0].title }}
+            📄 附片段：{{ msg.contextSnippets?.[0]?.title }}
           </div>
           <div class="message-time">
             {{ new Date(msg.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }) }}
@@ -178,29 +248,37 @@ onMounted(() => {
         </div>
       </div>
 
-      <div v-if="isLoading" class="loading-indicator">
-        <LoadingSpinner size="sm" text="AI 正在思考..." />
+      <div v-if="isLoading || isStreaming" class="loading-indicator">
+        <LoadingSpinner size="sm" :text="isStreaming ? 'AI 正在回复...' : 'AI 正在思考...'" />
       </div>
     </el-scrollbar>
 
     <div class="chat-input">
-      <BaseInput
-        v-model="inputValue"
-        type="textarea"
-        :rows="2"
-        placeholder="输入您的问题，Shift+Enter 换行"
-        class="chat-textarea"
-        @compositionstart="handleCompositionStart"
-        @compositionend="handleCompositionEnd"
-        @keydown="handleKeydown"
-      />
-      <BaseButton
-        variant="primary"
-        :icon="Promotion"
-        :loading="isLoading"
-        :disabled="!inputValue.trim()"
-        @click="sendMessage"
-      />
+      <div v-if="contextSnippet" class="context-attached">
+        <span class="context-attached-label">📄 已附加代码片段：</span>
+        <span class="context-attached-title">{{ contextSnippet.title }}</span>
+        <el-tag size="small" effect="plain">{{ contextSnippet.language }}</el-tag>
+      </div>
+      <div class="chat-input-row">
+        <BaseInput
+          v-model="inputValue"
+          type="textarea"
+          :rows="2"
+          placeholder="输入您的问题，Enter 发送，Shift+Enter 换行"
+          class="chat-textarea"
+          :disabled="isLoading || isStreaming"
+          @compositionstart="handleCompositionStart"
+          @compositionend="handleCompositionEnd"
+          @keydown="handleKeydown"
+        />
+        <BaseButton
+          variant="primary"
+          :icon="Promotion"
+          :loading="isLoading || isStreaming"
+          :disabled="!inputValue.trim() || isLoading || isStreaming"
+          @click="sendMessage"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -325,10 +403,39 @@ onMounted(() => {
 
 .chat-input {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 16px;
   border-top: 1px solid #eee;
   background: #fafafa;
+}
+
+.context-attached {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #4338ca;
+}
+
+.context-attached-label {
+  flex-shrink: 0;
+}
+
+.context-attached-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 12px;
 
   .chat-textarea {
     flex: 1;

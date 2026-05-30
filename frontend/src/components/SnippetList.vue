@@ -14,6 +14,7 @@ import {
   CopyDocument,
   Check,
   ZoomIn,
+  ChatSquare,
 } from '@/utils/icon'
 import { BaseButton, BaseCard } from '@/components/base'
 import type { Snippet } from '@/types/Snippet'
@@ -28,6 +29,7 @@ const emit = defineEmits<{
   (e: 'delete', id: string): void
   (e: 'run', snippet: Snippet): void
   (e: 'toggleFavorite', id: string): void
+  (e: 'referInChat', snippet: Snippet): void
 }>()
 
 const copiedId = ref<string | null>(null)
@@ -168,6 +170,9 @@ const copyFullCode = async () => {
           </BaseButton>
           <BaseButton variant="primary" size="sm" :icon="VideoPlay" @click="emit('run', snippet)">
             运行
+          </BaseButton>
+          <BaseButton variant="secondary" size="sm" :icon="ChatSquare" @click="emit('referInChat', snippet)">
+            引用到对话
           </BaseButton>
           <el-popconfirm
             title="确认删除该代码片段吗？"
