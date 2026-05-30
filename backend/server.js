@@ -30,6 +30,38 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/chat', chatRouter);
 
+// 请求日志中间件
+app.use((req, res, next) => {
+  const start = Date.now();
+  const requestId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+  // 记录请求开始
+  console.log(`[${new Date().toISOString()}] [INFO] [${requestId}] ${req.method} ${req.path}`, {
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+    contentType: req.get('content-type'),
+    bodySize: req.headers['content-length'] || 0
+  });
+
+  // 重写res.end以记录响应
+  const originalEnd = res.end;
+  res.end = function(...args) {
+    const duration = Date.now() - start;
+
+    console.log(`[${new Date().toISOString()}] [INFO] [${requestId}] 响应完成`, {
+      状态码: res.statusCode,
+      持续时间: `${duration}ms`,
+      内容长度: res.getHeader('content-length') || '未知',
+      内容类型: res.getHeader('content-type')
+    });
+
+    originalEnd.apply(this, args);
+  };
+
+  next();
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
