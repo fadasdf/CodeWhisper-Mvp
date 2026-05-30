@@ -13,6 +13,14 @@ export default defineConfig({
     vueDevTools(),
     monacoEditorPlugin({})
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))

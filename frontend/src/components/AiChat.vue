@@ -67,8 +67,93 @@ const appendWelcomeMessage = () => {
 }
 
 /** 发送用户消息，通过 SSE 流式接收 AI 回复 */
+// const sendMessage = async () => {
+//   if (!inputValue.value.trim() || isLoading.value || isStreaming.value) return
+
+//   const userMsg: Message = {
+//     id: generateId(),
+//     role: 'user',
+//     content: inputValue.value.trim(),
+//     timestamp: Date.now(),
+//     contextSnippets: props.contextSnippet ? [props.contextSnippet] : undefined
+//   }
+
+//   messages.value.push(userMsg)
+//   inputValue.value = ''
+//   // console.log('111111111111111111111111111111111111111111')
+//   // console.log('messages', messages.value)
+//   // console.log('userMsg', userMsg)
+//   await scrollToBottom()
+
+//   isLoading.value = true
+
+//   const aiMsg: Message = {
+//     id: generateId(),
+//     role: 'assistant',
+//     content: '',
+//     timestamp: Date.now()
+//   }
+//   messages.value.push(aiMsg)
+//   const aiMsgIndex = messages.value.length - 1
+
+//   const appendAiContent = (token: string) => {
+//     const target = messages.value[aiMsgIndex]
+//     if (target) target.content += token
+//   }
+
+//   const setAiContent = (content: string) => {
+//     const target = messages.value[aiMsgIndex]
+//     if (target) target.content = content
+//   }
+
+//   abortController.value?.abort()
+//   abortController.value = new AbortController()
+
+//   try {
+//     isStreaming.value = true
+//     isLoading.value = false
+
+//     await streamChat(
+//       {
+//         sessionId: sessionId.value,
+//         message: userMsg.content,
+//         contextSnippet: props.contextSnippet
+//       },
+//       (event) => {
+//         if (event.type === 'token') {
+//           appendAiContent(event.content)
+//           scrollToBottom()
+//         } else if (event.type === 'done') {
+//           setAiContent(event.content)
+//         } else if (event.type === 'error') {
+//           if (event.statusCode === 402) {
+//             setAiContent(`402 余额不足：${event.message}`)
+//           } else {
+//             setAiContent(`请求失败：${event.message}`)
+//           }
+//         }
+//       },
+//       abortController.value.signal
+//     )
+//   } catch (err) {
+//     if (err instanceof Error && err.name === 'AbortError') return
+//     setAiContent(`请求失败：${err instanceof Error ? err.message : '未知错误'}`)
+//   } finally {
+//     isStreaming.value = false
+//     isLoading.value = false
+//     abortController.value = null
+//     await scrollToBottom()
+//   }
+// }
+
+
 const sendMessage = async () => {
+  console.log(22222222222222222222222222222222222222222222222222222);
+
+  console.log('是否立即开始执行')
   if (!inputValue.value.trim() || isLoading.value || isStreaming.value) return
+
+  console.log('🚀 [sendMessage] 开始执行')
 
   const userMsg: Message = {
     id: generateId(),
@@ -80,12 +165,9 @@ const sendMessage = async () => {
 
   messages.value.push(userMsg)
   inputValue.value = ''
-  // console.log('111111111111111111111111111111111111111111')
-  // console.log('messages', messages.value)
-  // console.log('userMsg', userMsg)
-  await scrollToBottom()
-
   isLoading.value = true
+  isStreaming.value = true
+  await scrollToBottom()
 
   const aiMsg: Message = {
     id: generateId(),
@@ -106,11 +188,10 @@ const sendMessage = async () => {
     if (target) target.content = content
   }
 
-  abortController.value?.abort()
-  abortController.value = new AbortController()
+  const controller = new AbortController()
+  abortController.value = controller
 
   try {
-    isStreaming.value = true
     isLoading.value = false
 
     await streamChat(
@@ -120,23 +201,18 @@ const sendMessage = async () => {
         contextSnippet: props.contextSnippet
       },
       (event) => {
-         console.log('📨 [streamChat 回调] 收到事件:', event)
         if (event.type === 'token') {
-          console.log(`🎯 [回调] 收到 token: "${event.content}"`)
           appendAiContent(event.content)
           scrollToBottom()
         } else if (event.type === 'done') {
-          console.log(`✅ [回调] 收到 done，完整内容长度: ${event.content.length}`)
           setAiContent(event.content)
         } else if (event.type === 'error') {
-          if (event.statusCode === 402) {
-            setAiContent(`402 余额不足：${event.message}`)
-          } else {
-            setAiContent(`请求失败：${event.message}`)
-          }
+          if (event.code === 'ABORTED') return
+          const prefix = event.statusCode === 402 ? '402 余额不足：' : '请求失败：'
+          setAiContent(`${prefix}${event.message}`)
         }
       },
-      abortController.value.signal
+      controller.signal
     )
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return
@@ -144,7 +220,9 @@ const sendMessage = async () => {
   } finally {
     isStreaming.value = false
     isLoading.value = false
-    abortController.value = null
+    if (abortController.value === controller) {
+      abortController.value = null
+    }
     await scrollToBottom()
   }
 }
@@ -152,6 +230,9 @@ const sendMessage = async () => {
 // 清空对话并同步清除后端会话历史
 const clearMessages = async () => {
   abortController.value?.abort()
+  abortController.value = null
+  isStreaming.value = false
+  isLoading.value = false
   await clearChatSession(sessionId.value).catch(() => {})
 
   messages.value = [
@@ -172,7 +253,7 @@ const handleCompositionEnd = () => { isComposing = false }
 
 // 键盘事件：Enter 发送，Shift+Enter 换行
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.repeat && !isComposing) {
     e.preventDefault()
     sendMessage()
   }
