@@ -300,11 +300,6 @@ onUnmounted(() => {
         <el-menu-item index="1">
           <el-icon><FolderOpened /></el-icon>
           <span v-if="!sidebarCollapsed">代码片段</span>
-          <el-badge
-            v-if="snippets.length > 0 && !sidebarCollapsed"
-            :value="snippets.length"
-            class="badge"
-          />
         </el-menu-item>
         <el-menu-item index="2" @click="showChat = true">
           <el-icon><ChatSquare /></el-icon>
@@ -472,10 +467,6 @@ onUnmounted(() => {
       color: #fff;
     }
   }
-}
-
-.badge {
-  margin-left: 8px;
 }
 
 .sidebar-footer {

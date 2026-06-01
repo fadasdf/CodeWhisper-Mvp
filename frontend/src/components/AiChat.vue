@@ -67,94 +67,9 @@ const appendWelcomeMessage = () => {
 }
 
 /** 发送用户消息，通过 SSE 流式接收 AI 回复 */
-// const sendMessage = async () => {
-//   if (!inputValue.value.trim() || isLoading.value || isStreaming.value) return
-
-//   const userMsg: Message = {
-//     id: generateId(),
-//     role: 'user',
-//     content: inputValue.value.trim(),
-//     timestamp: Date.now(),
-//     contextSnippets: props.contextSnippet ? [props.contextSnippet] : undefined
-//   }
-
-//   messages.value.push(userMsg)
-//   inputValue.value = ''
-//   // console.log('111111111111111111111111111111111111111111')
-//   // console.log('messages', messages.value)
-//   // console.log('userMsg', userMsg)
-//   await scrollToBottom()
-
-//   isLoading.value = true
-
-//   const aiMsg: Message = {
-//     id: generateId(),
-//     role: 'assistant',
-//     content: '',
-//     timestamp: Date.now()
-//   }
-//   messages.value.push(aiMsg)
-//   const aiMsgIndex = messages.value.length - 1
-
-//   const appendAiContent = (token: string) => {
-//     const target = messages.value[aiMsgIndex]
-//     if (target) target.content += token
-//   }
-
-//   const setAiContent = (content: string) => {
-//     const target = messages.value[aiMsgIndex]
-//     if (target) target.content = content
-//   }
-
-//   abortController.value?.abort()
-//   abortController.value = new AbortController()
-
-//   try {
-//     isStreaming.value = true
-//     isLoading.value = false
-
-//     await streamChat(
-//       {
-//         sessionId: sessionId.value,
-//         message: userMsg.content,
-//         contextSnippet: props.contextSnippet
-//       },
-//       (event) => {
-//         if (event.type === 'token') {
-//           appendAiContent(event.content)
-//           scrollToBottom()
-//         } else if (event.type === 'done') {
-//           setAiContent(event.content)
-//         } else if (event.type === 'error') {
-//           if (event.statusCode === 402) {
-//             setAiContent(`402 余额不足：${event.message}`)
-//           } else {
-//             setAiContent(`请求失败：${event.message}`)
-//           }
-//         }
-//       },
-//       abortController.value.signal
-//     )
-//   } catch (err) {
-//     if (err instanceof Error && err.name === 'AbortError') return
-//     setAiContent(`请求失败：${err instanceof Error ? err.message : '未知错误'}`)
-//   } finally {
-//     isStreaming.value = false
-//     isLoading.value = false
-//     abortController.value = null
-//     await scrollToBottom()
-//   }
-// }
-
 
 const sendMessage = async () => {
-  console.log(22222222222222222222222222222222222222222222222222222);
-
-  console.log('是否立即开始执行')
   if (!inputValue.value.trim() || isLoading.value || isStreaming.value) return
-
-  console.log('🚀 [sendMessage] 开始执行')
-
   const userMsg: Message = {
     id: generateId(),
     role: 'user',
@@ -305,7 +220,7 @@ onMounted(async () => {
       </BaseButton>
     </div>
 
-    <!-- 修复1：使用 ElScrollbar 的正确滚动方法 -->
+    <!-- 使用 ElScrollbar 的正确滚动方法 -->
     <el-scrollbar ref="scrollbarRef" class="chat-messages">
       <div
         v-for="msg in messages"
@@ -319,7 +234,7 @@ onMounted(async () => {
             {{ msg.role === 'user' ? '我' : 'AI助手' }}
           </div>
           <div class="message-text">{{ msg.content }}</div>
-          <!-- 修复2：显示附带的代码片段上下文 -->
+          <!-- 显示附带的代码片段上下文 -->
           <div v-if="msg.contextSnippets?.length" class="context-badge">
             📄 附片段：{{ msg.contextSnippets?.[0]?.title }}
           </div>
