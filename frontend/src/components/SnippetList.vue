@@ -18,6 +18,9 @@ import {
 } from '@/utils/icon'
 import { BaseButton, BaseCard } from '@/components/base'
 import type { Snippet } from '@/types/Snippet'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 interface Props {
   snippets: Snippet[]
@@ -93,6 +96,18 @@ const copyFullCode = async () => {
     ElMessage.success('复制成功')
   } catch {
     ElMessage.error('复制失败')
+  }
+}
+
+const isAdmin = computed(() => authStore.role === 'admin')
+
+const confirmDelete = (id: string) => {
+  if (!isAdmin.value) {
+    ElMessage.error('您没有权限删除代码片段')
+  }
+  else {
+    emit('delete', id)
+    ElMessage.success('删除成功')
   }
 }
 </script>
@@ -172,13 +187,13 @@ const copyFullCode = async () => {
             运行
           </BaseButton>
           <BaseButton variant="secondary" size="sm" :icon="ChatSquare" @click="emit('referInChat', snippet)">
-            引用到对话
+            引用
           </BaseButton>
           <el-popconfirm
             title="确认删除该代码片段吗？"
             confirm-button-text="删除"
             cancel-button-text="取消"
-            @confirm="emit('delete', snippet.id)"
+            @confirm="confirmDelete(snippet.id)"
           >
             <template #reference>
               <BaseButton variant="danger" size="sm" :icon="Delete">
@@ -312,7 +327,7 @@ const copyFullCode = async () => {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .favorite-btn {
