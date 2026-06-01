@@ -74,6 +74,8 @@ const filteredSnippets = computed(() => {
 
 const favoriteCount = computed(() => snippets.value.filter(s => s.isFavorite).length)
 
+const isAdmin = computed(() => authStore.role === 'admin')
+
 // ---------- 辅助函数 ----------
 const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 8)}`
 
@@ -194,7 +196,7 @@ const handleReferInChat = (snippet: Snippet) => {
 
 // 关闭聊天抽屉时清空引用片段
 const handleChatClose = () => {
-  currentSnippet.value = null
+  // currentSnippet.value = null
 }
 
 const handleSubmit = (data: Omit<Snippet, 'createdAt' | 'updatedAt'> & { id?: string }) => {
@@ -303,7 +305,7 @@ onUnmounted(() => {
           <el-icon><ChatSquare /></el-icon>
           <span v-if="!sidebarCollapsed">AI 对话</span>
         </el-menu-item>
-        <el-menu-item index="3" @click="handleClearAllData">
+        <el-menu-item index="3" v-if="isAdmin" @click="handleClearAllData">
           <el-icon><Delete /></el-icon>
           <span v-if="!sidebarCollapsed">清空数据</span>
         </el-menu-item>

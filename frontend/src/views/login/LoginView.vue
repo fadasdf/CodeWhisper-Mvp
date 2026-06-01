@@ -130,7 +130,7 @@ const quickLogin = async (account: DemoAccount) => {
         </BaseButton>
       </el-form>
 
-      <!-- <div class="demo-section">
+      <div class="demo-section">
         <p class="demo-title">演示账号（点击卡片一键登录）</p>
         <div class="demo-cards">
           <BaseCard
@@ -160,7 +160,7 @@ const quickLogin = async (account: DemoAccount) => {
             </BaseButton>
           </BaseCard>
         </div>
-      </div> -->
+      </div>
     </BaseCard>
   </div>
 </template>
