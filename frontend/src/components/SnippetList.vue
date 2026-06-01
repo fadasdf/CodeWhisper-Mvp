@@ -249,6 +249,9 @@ const confirmDelete = (id: string) => {
 }
 
 .snippet-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
   &.is-favorite {
     border-left: 4px solid #f59e0b;
   }
