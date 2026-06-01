@@ -192,11 +192,9 @@ const handleReferInChat = (snippet: Snippet) => {
   activeMenu.value = '2'  // 高亮AI对话菜单
 }
 
-// 关闭聊天抽屉时清空引用片段（可选）
+// 关闭聊天抽屉时清空引用片段
 const handleChatClose = () => {
-  // 不清空 currentSnippet，因为可能还需要运行；但可以根据需求清除
-  // 下面这行注释掉，保留片段以便再次打开时仍能看到
-  // currentSnippet.value = null
+  currentSnippet.value = null
 }
 
 const handleSubmit = (data: Omit<Snippet, 'createdAt' | 'updatedAt'> & { id?: string }) => {
