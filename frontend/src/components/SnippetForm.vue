@@ -40,7 +40,7 @@ const submitLoading = ref(false)
 console.log('formRef', formRef.value)
 
 // 中文输入法组字期间，回车不触发添加标签
-let isComposing = false
+let isComposing: boolean = false
 
 const rules: FormRules = {
   title: [
