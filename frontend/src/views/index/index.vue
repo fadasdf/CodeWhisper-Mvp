@@ -208,8 +208,8 @@ const handleSubmit = (data: Omit<Snippet, 'createdAt' | 'updatedAt'> & { id?: st
       snippets.value[index] = {
         ...snippets.value[index],
         ...data,
-        updatedAt: now
-      }
+        updatedAt: now,
+      } as Snippet
     }
   } else {
     // 新增
@@ -295,7 +295,7 @@ onUnmounted(() => {
         :default-active="activeMenu"
         mode="vertical"
         class="sidebar-menu"
-        @select="(index) => activeMenu = index"
+        @select="(index: string) => activeMenu = index"
       >
         <el-menu-item index="1">
           <el-icon><FolderOpened /></el-icon>

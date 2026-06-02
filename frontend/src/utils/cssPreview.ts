@@ -9,8 +9,13 @@ export function parseCssTargets(css: string) {
   const ids = new Set<string>()
   const elements = new Set<string>()
 
-  for (const m of stripped.matchAll(/\.([a-zA-Z_][\w-]*)/g)) classes.add(m[1])
-  for (const m of stripped.matchAll(/#([a-zA-Z_][\w-]*)/g)) ids.add(m[1])
+
+  for (const m of stripped.matchAll(/\.([a-zA-Z_][\w-]*)/g)) {
+    if (m[1]) classes.add(m[1]);
+  }
+  for (const m of stripped.matchAll(/#([a-zA-Z_][\w-]*)/g)) {
+    if (m[1]) ids.add(m[1])
+  }
 
   const elementTags = [
     'body', 'html', 'h1', 'h2', 'h3', 'h4', 'p', 'a', 'button', 'input',
@@ -130,8 +135,10 @@ export function buildCssPreviewDocument(code: string, title = 'CSS 片段') {
 
   const keysToRender = showFullPlayground ? Object.keys(PRESET_BLOCKS) : presetKeys
 
+
   for (const key of keysToRender) {
-    blocks.push(wrapBlock(`.${key}`, PRESET_BLOCKS[key]))
+    // 逻辑上 key 一定存在于 PRESET_BLOCKS 中，但 TypeScript 无法静态证明这一点，因此认为返回值是 string | undefined，而 wrapBlock 要求第二个参数必须是 string,因此加上!非空断言就可以告诉ts了
+    blocks.push(wrapBlock(`.${key}`, PRESET_BLOCKS[key]!))  // 加 !
     coveredClasses.add(key)
     if (key === 'card') {
       coveredClasses.add('card-header')
@@ -163,7 +170,7 @@ export function buildCssPreviewDocument(code: string, title = 'CSS 片段') {
   }
 
   if (blocks.length === 0) {
-    blocks.push(wrapBlock('默认', PRESET_BLOCKS.container + PRESET_BLOCKS.card))
+    blocks.push(wrapBlock('默认', PRESET_BLOCKS.container + PRESET_BLOCKS.card!))
   }
 
   const escapedTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;')

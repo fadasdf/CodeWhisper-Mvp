@@ -45,13 +45,8 @@ const generateHtml = computed(() => {
     return buildCssPreviewDocument(code, props.snippet.title)
   }
 
-  // 处理 JavaScript / TypeScript（将 TypeScript 视为 JavaScript 运行，或提示不支持）
-  if (language === 'javascript' || language === 'typescript') {
-    // 对于 TypeScript，简单提示用户（或可用 eval 直接执行，但可能报语法错误）
-    // 这里采用友好提示并尝试执行（如果包含 TS 特有语法会失败）
-    const tsWarning = language === 'typescript'
-      ? '// 注意：TypeScript 代码未编译，可能无法运行。建议转为 JavaScript。\n'
-      : '';
+  // 处理 JavaScript
+  if (language === 'javascript') {
     return `
 <!DOCTYPE html>
 <html>
@@ -124,7 +119,6 @@ const generateHtml = computed(() => {
       };
 
       try {
-        ${tsWarning}
         ${code}
       } catch (err) {
         logToPage('error', [err.message || err]);
