@@ -68,7 +68,6 @@ function loadFromStorage(): AuthUser | null {
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(loadFromStorage())
-
   const isLoggedIn = computed(() => user.value !== null)
   const username = computed(() => user.value?.username ?? '')
   const role = computed(() => user.value?.role ?? null)
