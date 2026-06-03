@@ -1,32 +1,61 @@
+# odeWhisper - AI 驱动的代码工作台
+一个面向开发者的在线工具，提供代码片段管理、AI 智能对话、安全代码执行沙箱。帮助个人开发者沉淀代码资产，提升编码效率。
 
-# CodeWhisper- Mvp
+线上 Demo（前端）：https://code-whisper-mvp-pqj8-48norljby-dranbes-projects.vercel.app/
+后端 API 地址：暂无
 
-<!-- 项目介绍 -->
- 一个面向开发者的在线代码片段管理 + AI智能对话 + 安全执行沙箱的轻量级工具。用户可以保存代码片段、与AI讨论代码、在线运行代码（JavaScript/HTML/CSS）。
+## 功能特性
+1.代码片段管理
+  创建、编辑、删除、收藏代码片段，支持标签分类与全文搜索，数据存储于浏览器 localStorage（后续升级为云端存储）。
+2.AI 智能对话
+    基于 DeepSeek 大模型，实现流式打字机效果，支持多轮对话与代码解释。可引用已保存的代码片段作为上下文。
+3.代码沙箱
+  安全执行 JavaScript / HTML / CSS 代码，通过 iframe + QuickJS 沙箱隔离，实时预览运行结果。
+4.远程协作就绪
+  项目全程 Git 管理，完整文档，支持异步沟通与独立部署。
 
+## 技术栈
+前端： Vue 3 + TypeScript + Pinia + Vite
+UI 组件： Element Plus
+后端：	Node.js + Express + LangChain
+AI 模型：	DeepSeek API（OpenAI 兼容）
+部署:	前端 Vercel   后端 Docker
+版本控制:	Git
 
-<!-- 设计目的 -->
-这是一个为期2周的远程个人项目，用于保持技术手感。
+## 本地运行
+前置条件
+Node.js >= 18
+npm / yarn / pnpm
+DeepSeek API Key（自行申请配置）
 
-<!-- 核心功能 -->
-1. 代码片段管理（CRUD）
-  支持创建/编辑/删除/收藏片段
-  片段包含：标题、语言（js/html/css）、代码内容、标签
-  使用Pinia管理片段状态，localStorage持久化（无需后端数据库，降低复杂度）
-2. AI对话面板
-  用户输入问题（如“解释这段代码”、“优化这个函数”）
-  后端Node.js调用大模型API，通过SSE返回流式响应
-  前端展示打字机效果，支持上下文（支持查看历史对话）
-3. 代码沙箱运行（基于iframe）
-  对于HTML/CSS/JS片段，点击“运行”在新iframe中渲染
-  使用sandbox属性隔离安全
-4. 全局状态与体验优化
-  请求拦截器：自动添加loading、超时重试（3次）、错误提示
-  骨架屏 + 全局loading合并管理
-  响应式布局：PC端侧边栏+主区域，移动端折叠菜单
+## 克隆项目
+bash
+git clone https://github.com/你的用户名/CodeWhisper-Mvp.git
+cd CodeWhisper-Mvp
+前端启动
+bash
+cd frontend
+npm install
+cp .env.example .env   # 配置后端 API 地址（本地开发可保持默认）
+npm run dev
+访问 http://localhost:5173
 
-<!-- 未来目标 -->
-1. 动态路由模拟：通过简单登录（游客/普通用户/管理员）展示不同页面权限（例如管理员可见“统计面板”）。用localStorage模拟角色，无需后端认证。
-2. 图表统计：使用ECharts展示代码片段数量分布（按语言、标签），展示你的图表能力。
-3. 暗色主题切换：CSS变量 + 组合式API，提升交互细腻度。
+后端启动
+bash
+cd backend
+npm install
+cp .env.example .env   # 填入 DEEPSEEK_API_KEY
+npm run dev
+后端运行于 http://localhost:4000
+开发环境下，前端 Vite 已配置代理 /api → http://localhost:4000，无需额外处理跨域。
 
+## 部署步骤
+前端（Vercel）
+  将 frontend 目录推送到 GitHub。
+  在 Vercel 中导入仓库，设置 Root Directory 为 frontend。
+  添加环境变量 VITE_API_BASE_URL = 后端线上地址。
+
+后端（Docker）
+  将 backend 目录推送到 GitHub。
+  在 Render 中创建 Web Service，选择仓库，设置 Root Directory 为 backend。
+  添加环境变量 DEEPSEEK_API_KEY。
