@@ -1,6 +1,6 @@
 <!--
   LoadingSpinner：旋转加载指示
-  overlay=true 时全屏遮罩，常用于提交/登录等阻塞操作
+  overlay=true 时全屏遮罩，用于提交/登录等阻塞操作
 -->
 <script setup lang="ts">
 import { computed } from 'vue'

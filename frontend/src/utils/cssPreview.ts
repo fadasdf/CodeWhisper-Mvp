@@ -2,7 +2,7 @@
  * CSS 沙箱预览：根据片段中的选择器生成匹配 DOM，避免所有 CSS 共用同一套 demo 结构
  */
 
-/** 从 CSS 源码解析 .class、#id、标签选择器（先去掉注释） */
+/** 从 CSS 源码解析 .class、#id、标签选择器 */
 export function parseCssTargets(css: string) {
   const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '')
   const classes = new Set<string>()
