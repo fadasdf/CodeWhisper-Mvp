@@ -62,7 +62,7 @@ function buildMessages(history, userMessage, contextSnippet) {
   messages.push(new HumanMessage(userMessage));
 
   log('debug', 'buildMessages: 总消息数量', messages.length);
-  return messages; 
+  return messages;
 }
 
 function sendSSE(res, payload) {
