@@ -8,7 +8,11 @@ const PORT = process.env.PORT || 3000;
 
 // 1. CORS 配置（放在路由之前）
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173',
+  origin: [
+    'https://code-whisper-mvp-pqji8-9rxsp57su-dranbes-projects.vercel.app',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173'
+  ],
   credentials: true,
 }));
 
