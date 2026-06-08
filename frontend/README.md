@@ -2,7 +2,7 @@
 一个面向开发者的在线工具，提供代码片段管理、AI 智能对话、安全代码执行沙箱。帮助个人开发者沉淀代码资产，提升编码效率。
 
 线上 Demo（前端）：https://code-whisper-mvp-pqj8-48norljby-dranbes-projects.vercel.app/
-后端 API 地址：暂无
+后端 API 地址：https://code-whisper-mvp-pqj8.vercel.app/
 
 ## 功能特性
 1.代码片段管理
@@ -30,7 +30,7 @@ DeepSeek API Key（自行申请配置）
 
 ## 克隆项目
 bash
-git clone https://github.com/你的用户名/CodeWhisper-Mvp.git
+git clone https://github.com/fadasdf/CodeWhisper-Mvp
 cd CodeWhisper-Mvp
 前端启动
 bash
@@ -47,7 +47,7 @@ npm install
 cp .env.example .env   # 填入 DEEPSEEK_API_KEY
 npm run dev
 后端运行于 http://localhost:4000
-开发环境下，前端 Vite 已配置代理 /api → http://localhost:4000，无需额外处理跨域。
+开发环境下，通过nginx反向代理解决跨域问题
 
 ## 部署步骤
 前端（Vercel）
