@@ -29,3 +29,6 @@ build/
 # 操作系统生成的文件
 .DS_Store
 Thumbs.db
+
+# Docker 镜像文件
+*.tar
