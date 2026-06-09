@@ -19,7 +19,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: number
-  contextSnippets?: Snippet[]   // 添加缺失的字段
+  contextSnippets?: Snippet[]
 }
 
 interface Props {
@@ -40,7 +40,7 @@ const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 const sessionId = ref('')
 const abortController = ref<AbortController | null>(null)
 
-// 修复5：中文输入法组合状态
+// 中文输入法组合状态
 let isComposing = false
 
 // 生成唯一 ID（兼容性更好）
